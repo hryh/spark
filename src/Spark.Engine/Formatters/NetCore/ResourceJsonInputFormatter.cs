@@ -4,6 +4,7 @@ using Hl7.Fhir.Serialization;
 using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.Extensions.DependencyInjection;
 using Spark.Core;
+using Spark.Engine.Extensions;
 using System;
 using System.IO;
 using System.Text;
@@ -36,12 +37,16 @@ namespace Spark.Engine.Formatters
             if (encoding != Encoding.UTF8)
                 throw Error.BadRequest("FHIR supports UTF-8 encoding exclusively, not " + encoding.WebName);
 
+            context.HttpContext.AllowSynchronousIO();
+
             try
             {
                 using (TextReader reader = context.ReaderFactory(context.HttpContext.Request.Body, encoding))
                 {
                     FhirJsonParser parser = context.HttpContext.RequestServices.GetRequiredService<FhirJsonParser>();
-                    return await InputFormatterResult.SuccessAsync(parser.Parse(await reader.ReadToEndAsync()));
+                    Resource resource = parser.Parse(await reader.ReadToEndAsync()) as Resource;
+                    context.HttpContext.AddResourceType(resource.GetType());
+                    return await InputFormatterResult.SuccessAsync(resource);
                 }
             }
             catch (FormatException exception)
