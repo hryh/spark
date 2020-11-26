@@ -9,18 +9,21 @@ using Spark.Store.Mongo;
 using System.Web.Http;
 using System.Web.Mvc;
 using Microsoft.AspNet.SignalR;
+using Spark.Engine;
 using Spark.Engine.FhirResponseFactory;
 using Spark.Engine.Interfaces;
 using Unity.WebApi;
 using Spark.Mongo.Search.Indexer;
 using Spark.Import;
 using Spark.Engine.Model;
+using Spark.Engine.Search;
 using Spark.Engine.Service;
 using Spark.Engine.Service.FhirServiceExtensions;
 using Spark.Engine.Store.Interfaces;
 using Spark.Filters;
 using Spark.Mongo.Store;
 using Spark.Mongo.Store.Extensions;
+using Spark.Search.Mongo;
 
 namespace Spark
 {
@@ -68,14 +71,31 @@ namespace Spark
                 new InjectionConstructor(Settings.MongoUrl, container.Resolve<MongoIndexMapper>()));
             container.RegisterInstance<Definitions>(DefinitionsFactory.Generate(ModelInfo.SearchParameters));
             //TODO: Use FhirModel instead of ModelInfo
-            container.RegisterType<IFhirIndex, MongoFhirIndex>(new ContainerControlledLifetimeManager());
+            container.RegisterType<IReferenceNormalizationService, ReferenceNormalizationService>();
+            container.RegisterType<IFhirModel, FhirModel>(new ContainerControlledLifetimeManager(),
+                new InjectionConstructor(SparkModelInfo.SparkSearchParameters));
+            container.RegisterType<IFhirIndex, MongoFhirIndex>(new ContainerControlledLifetimeManager(),
+                new InjectionConstructor(
+                    container.Resolve<IIndexStore>(),
+                    container.Resolve<MongoSearcher>(),
+                    new SparkSettings
+                    {
+                        Search = new SearchSettings
+                        {
+                            CheckReferences = Settings.SearchCheckReferences,
+                            CheckReferencesFor = Settings.SearchCheckReferencesFor
+                        }
+                    }));
+            container.RegisterType<IFhirStorePagedReader, MongoFhirStorePagedReader>(new ContainerControlledLifetimeManager(),
+                new InjectionConstructor(Settings.MongoUrl));
             container.RegisterType<IFhirResponseFactory, FhirResponseFactory>();
             container.RegisterType<IFhirResponseInterceptorRunner, FhirResponseInterceptorRunner>();
             container.RegisterType<IFhirResponseInterceptor, ConditionalHeaderFhirResponseInterceptor>("ConditionalHeaderFhirResponseInterceptor");
-            container.RegisterType<IFhirModel, FhirModel>(new ContainerControlledLifetimeManager(),
-                new InjectionConstructor(SparkModelInfo.SparkSearchParameters));
             container.RegisterType<FhirPropertyIndex>(new ContainerControlledLifetimeManager(), 
                 new InjectionConstructor(container.Resolve<IFhirModel>()));
+
+            container.RegisterType<ElementIndexer>(new ContainerControlledLifetimeManager());
+            container.RegisterType<ResourceVisitor>(new ContainerControlledLifetimeManager());
 
             container.RegisterType<CompressionHandler>(new ContainerControlledLifetimeManager(), 
                 new InjectionConstructor(Settings.MaximumDecompressedBodySizeInBytes));
@@ -83,6 +103,19 @@ namespace Spark
             container.RegisterType<InitializerHub>(new HierarchicalLifetimeManager());
             container.RegisterType<IHistoryStore, HistoryStore>(new InjectionConstructor(Settings.MongoUrl));
             container.RegisterType<IFhirService, FhirService>(new ContainerControlledLifetimeManager());
+            container.RegisterType<IIndexRebuildService, IndexRebuildService>(new ContainerControlledLifetimeManager(),
+                new InjectionConstructor(
+                    container.Resolve<IIndexStore>(),
+                    container.Resolve<IIndexService>(),
+                    container.Resolve<IFhirStorePagedReader>(),
+                    new SparkSettings
+                    {
+                        IndexSettings = new IndexSettings
+                        {
+                            ClearIndexOnRebuild = Settings.ClearIndexOnRebuild,
+                            ReindexBatchSize = Settings.ReindexBatchSize
+                        }
+                    }));
 
             container.RegisterType<IServiceListener, SearchService>("searchListener");
             container.RegisterType<IFhirServiceExtension, SearchService>("search");

@@ -21,6 +21,7 @@ namespace Spark.Mongo.Extensions
             services.TryAddSingleton<StoreSettings>(settings);
             services.TryAddTransient<IGenerator>((provider) => new MongoIdGenerator(settings.ConnectionString));
             services.TryAddTransient<IFhirStore>((provider) => new MongoFhirStore(settings.ConnectionString));
+            services.TryAddTransient<IFhirStorePagedReader>((provider) => new MongoFhirStorePagedReader(settings.ConnectionString));
             services.TryAddTransient<IHistoryStore>((provider) => new HistoryStore(settings.ConnectionString));
             services.TryAddTransient<ISnapshotStore>((provider) => new MongoSnapshotStore(settings.ConnectionString));
             services.TryAddTransient<IFhirStoreAdministration>((provider) => new MongoStoreAdministration(settings.ConnectionString));
@@ -28,7 +29,6 @@ namespace Spark.Mongo.Extensions
             services.TryAddTransient<IIndexStore>((provider) => new MongoIndexStore(settings.ConnectionString, provider.GetRequiredService<MongoIndexMapper>()));
             services.TryAddTransient((provider) => new MongoIndexStore(settings.ConnectionString, provider.GetRequiredService<MongoIndexMapper>()));
             services.TryAddTransient((provider) => DefinitionsFactory.Generate(ModelInfo.SearchParameters));
-            services.TryAddTransient<MongoIndexer>();
             services.TryAddTransient<MongoSearcher>();
             services.TryAddTransient<IFhirIndex, MongoFhirIndex>();
         }

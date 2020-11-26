@@ -123,6 +123,13 @@ namespace Spark
             get { return long.Parse(GetRequiredKey("MaxDecompressedBodySizeInBytes")); }
         }
 
+        public static bool ClearIndexOnRebuild => bool.TryParse(
+            ConfigurationManager.AppSettings.Get("ClearIndexOnRebuild") ?? "", out var clearIndex)
+                                                  && clearIndex;
+
+        public static int ReindexBatchSize => int.TryParse(
+            ConfigurationManager.AppSettings.Get("ReindexBatchSize") ?? "", out var batchSize)
+            ? batchSize : 100;
 
         private static string GetRequiredKey(string key)
         {
@@ -132,6 +139,23 @@ namespace Spark
                 throw new ArgumentException(string.Format("The configuration variable {0} is missing.", key));
 
             return s;
+        }
+
+        public static bool SearchCheckReferences => !string.IsNullOrWhiteSpace(ConfigurationManager.AppSettings.Get("SearchCheckReferences"));
+
+        public static string[] SearchCheckReferencesFor
+        {
+            get
+            {
+                var configValue = ConfigurationManager.AppSettings.Get("SearchCheckReferences");
+                if (string.IsNullOrWhiteSpace(configValue) ||
+                    bool.TryParse(configValue, out var checkRefs) && checkRefs)
+                {
+                    return null; // Check refs for all resources and their properties
+                }
+
+                return configValue.Split(',');
+            }
         }
     }
 }

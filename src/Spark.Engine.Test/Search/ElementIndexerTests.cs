@@ -297,7 +297,7 @@ namespace Spark.Engine.Search.Tests
             Assert.IsInstanceOfType(result[0], typeof(CompositeValue));
             var comp = (CompositeValue)result[0];
 
-            CheckCoding(comp, code: "False", system: null, text: null);
+            CheckCoding(comp, code: "false", system: null, text: null);
         }
 
         [TestMethod()]
@@ -444,7 +444,7 @@ namespace Spark.Engine.Search.Tests
 
             var result = sut.Map(input);
 
-            CheckQuantity(result, value: 10000, unit: "g", system: "http://unitsofmeasure.org", decimals: "gE4x1.0");
+            CheckQuantity(result, value: 10000, unit: "g", system: "http://unitsofmeasure.org", decimals: "gE04x1.0");
         }
 
         [TestMethod()]
