@@ -66,14 +66,7 @@ namespace Spark.Engine.Extensions
 
         public static List<Tuple<string, string>> TupledParameters(this HttpRequest request)
         {
-            var list = new List<Tuple<string, string>>();
-
-            IQueryCollection queryCollection = request.Query;
-            foreach(var query in queryCollection)
-            {
-                list.Add(new Tuple<string, string>(query.Key, query.Value));
-            }
-            return list;
+            return UriParamList.FromQueryString(request.QueryString.Value);
         }
 
         public static SearchParams GetSearchParamsFromBody(this HttpRequest request)
@@ -100,7 +93,7 @@ namespace Spark.Engine.Extensions
         {
             var list = new List<Tuple<string, string>>();
             string content = request.Content.ReadAsStringAsync().Result;
-            string[] parameters = string.IsNullOrEmpty(content) ? null : content.Split('&');
+            string[] parameters = string.IsNullOrEmpty(content) ? new string[0] : content.Split('&');
             foreach (string parameter in parameters)
             {
                 string[] p = parameter.Split('=');
